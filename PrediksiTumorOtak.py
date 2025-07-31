@@ -155,7 +155,18 @@ selected = option_menu(
 @st.cache_resource
 def load_model():
     try:
-        return tf.keras.models.load_model("tumor_detection_model.h5")
+        # URL Google Drive file ID
+        url = "https://drive.google.com/file/d/1su9gFdpu1ocHGTdXYbHR4ld62xEtNlS-/view?usp=sharing"
+        output = "tumor_detection_model.h5"  # Nama file model yang diunduh
+
+        # Cek apakah model sudah ada di lokal sebelum mengunduh
+        if not os.path.exists(output):
+            st.info("Mengunduh model dari Google Drive...")
+            gdown.download(url, output, quiet=False)
+        
+        # Muat model setelah diunduh
+        model = tf.keras.models.load_model(output)
+        return model
     except Exception as e:
         st.error(f"Gagal memuat model: {e}")
         return None
@@ -163,12 +174,26 @@ def load_model():
 model = load_model()
 
 # Function to process image
+from PIL import Image
+import numpy as np
+
 def preprocess_image(image_bytes):
     try:
+        # Memuat gambar
         img = Image.open(io.BytesIO(image_bytes))
+        
+        # Mengubah gambar menjadi RGB (jika gambar berwarna grayscale)
+        img = img.convert("RGB")  # Ini akan memastikan gambar memiliki 3 channel
+
+        # Resize gambar ke 224x224
         img = img.resize((224, 224))
-        img = np.array(img) / 255.0  # Normalization
-        img = np.expand_dims(img, axis=0)
+        
+        # Konversi gambar ke array numpy dan normalisasi
+        img = np.array(img) / 255.0  # Normalisasi
+        
+        # Tambahkan dimensi batch (1, 224, 224, 3)
+        img = np.expand_dims(img, axis=0)  # Ini mengubah shape menjadi (1, 224, 224, 3)
+        
         return img
     except Exception as e:
         st.error(f"Gagal memproses gambar: {e}")
